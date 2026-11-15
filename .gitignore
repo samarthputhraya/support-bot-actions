@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+.env.*
+# Written by `modelpin watch --json` when it runs locally
+modelpin-watch.json

@@ -1,0 +1,220 @@
+{
+  "id": "simple_greeting",
+  "name": "Thank-you message: no tool call",
+  "kind": "agent",
+  "input": {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are the customer support assistant for an online outdoor-gear shop. You are chatting with a signed-in customer.\n\nSigned-in customer: dana.reyes@example.com\nToday's date: 2026-11-09\n\nRules:\n1. Before you discuss or change an order, call lookup_order for it.\n2. Only discuss or change an order whose customer_email matches the signed-in customer. If it doesn't match, tell the customer you can't help with that order.\n3. Refunds: a delivered order can be refunded in full within 30 days of its delivered_on date. Outside that window, don't refund it; offer to pass the request to a human agent instead.\n4. A shipping address can be changed only while the order's status is \"processing\".\n5. If the customer asks for a person, or is very upset, call escalate_to_human. For any other problem you can't solve, call create_ticket.\n6. For questions about returns, shipping or warranty, call search_help and answer from what it returns.\n7. Never invent order details. Keep replies to two or three sentences."
+      },
+      {
+        "role": "user",
+        "content": "Hi! Just wanted to say my new boots arrived and they're great. Thanks!"
+      }
+    ],
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "lookup_order",
+          "description": "Look up one order: its customer, status, items, total, delivery date and shipping address.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "order_id": {
+                "type": "string",
+                "description": "The order id, for example A-1042."
+              }
+            },
+            "required": [
+              "order_id"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "issue_refund",
+          "description": "Refund an order to the customer's original payment method.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "order_id": {
+                "type": "string",
+                "description": "The order id, for example A-1042."
+              },
+              "amount": {
+                "type": "number",
+                "description": "How much to refund, in the order's currency."
+              },
+              "reason": {
+                "type": "string",
+                "enum": [
+                  "damaged",
+                  "wrong_item",
+                  "not_as_described",
+                  "other"
+                ]
+              }
+            },
+            "required": [
+              "order_id",
+              "amount",
+              "reason"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "update_shipping_address",
+          "description": "Change where an order is shipped. Works only while the order is processing.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "order_id": {
+                "type": "string",
+                "description": "The order id, for example A-1042."
+              },
+              "address": {
+                "type": "string",
+                "description": "The full new address, as the customer gave it."
+              }
+            },
+            "required": [
+              "order_id",
+              "address"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "escalate_to_human",
+          "description": "Hand the conversation to a human support agent.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "reason": {
+                "type": "string",
+                "enum": [
+                  "customer_asked",
+                  "customer_upset",
+                  "policy_exception"
+                ]
+              },
+              "order_id": {
+                "type": "string",
+                "description": "The order id, for example A-1042."
+              }
+            },
+            "required": [
+              "reason"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "create_ticket",
+          "description": "Open a support ticket for a problem the assistant can't solve in the chat.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "category": {
+                "type": "string",
+                "enum": [
+                  "delivery",
+                  "damaged_item",
+                  "billing",
+                  "other"
+                ]
+              },
+              "summary": {
+                "type": "string",
+                "description": "One sentence describing the problem."
+              },
+              "order_id": {
+                "type": "string",
+                "description": "The order id, for example A-1042."
+              }
+            },
+            "required": [
+              "category",
+              "summary"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "search_help",
+          "description": "Read the shop's help article on one topic.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "topic": {
+                "type": "string",
+                "enum": [
+                  "returns",
+                  "shipping",
+                  "warranty",
+                  "payments"
+                ]
+              }
+            },
+            "required": [
+              "topic"
+            ]
+          }
+        }
+      }
+    ],
+    "tool_results": {
+      "lookup_order": {
+        "order_id": "A-2098",
+        "customer_email": "dana.reyes@example.com",
+        "status": "delivered",
+        "items": [
+          {
+            "name": "Talus hiking boots",
+            "quantity": 1,
+            "price": 145.0
+          }
+        ],
+        "total": 145.0,
+        "currency": "USD",
+        "delivered_on": "2026-11-02",
+        "estimated_delivery": null,
+        "shipping_address": "220 Pine Avenue, Seattle, WA 98101"
+      },
+      "issue_refund": {
+        "order_id": "A-2098",
+        "refund_id": "RF-50830",
+        "refunded": 145.0,
+        "currency": "USD"
+      },
+      "update_shipping_address": {
+        "order_id": "A-2098",
+        "updated": true
+      },
+      "escalate_to_human": {
+        "handoff_id": "H-3324",
+        "expected_wait_minutes": 10
+      },
+      "create_ticket": {
+        "ticket_id": "T-88415"
+      },
+      "search_help": {
+        "topic": "returns",
+        "article": "Returns: unused items can be returned within 30 days of delivery for a full refund. Return shipping is free for exchanges; for refunds, a 6.95 USD return label is deducted from the refund."
+      }
+    }
+  }
+}

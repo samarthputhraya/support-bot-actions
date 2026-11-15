@@ -1,0 +1,19 @@
+# Modelpin settings for the support bot (modelpin 0.5.3).
+
+# The model the bot uses today; app/model.txt holds the same id. Anthropic retires it on
+# 30 Nov 2026 and names claude-sonnet-5-5 as its replacement.
+models:
+  - claude-sonnet-4-5-20250929
+
+scenarios_dir: scenarios
+
+# Uses the key in ANTHROPIC_API_KEY.
+providers:
+  - anthropic
+
+# Each check replays a scenario 5 times on the new model. The baseline in .modelpin/ holds 10 runs
+# per scenario of the current model, recorded before Anthropic switches it off.
+runs: 5
+
+# No judge_model: answers are compared on tool calls, refusals and each scenario's text
+# checks only, and reports say what that leaves unmeasured.

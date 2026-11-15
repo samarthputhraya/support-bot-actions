@@ -1,0 +1,43 @@
+name: Modelpin model check
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  modelpin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0   # v7.1.0
+        with:
+          python-version: "3.12"
+      - env:
+          MODELPIN_MODEL_FILE: "app/model.txt"   # edit: the file in your repository that holds the model id
+        run: |
+          test -s "$MODELPIN_MODEL_FILE" || { echo "MODELPIN_MODEL_FILE names a file that isn't in this repository ($MODELPIN_MODEL_FILE)"; exit 1; }
+          echo "MODELPIN_START=$(date +%s)" >> "$GITHUB_ENV"
+          echo "MODELPIN_CANDIDATE=$(tr -d '[:space:]' < "$MODELPIN_MODEL_FILE")" >> "$GITHUB_ENV"
+      - id: modelpin
+        uses: samarthputhraya/Modelpin@v0.5.3
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}   # edited as Setup says: this bot uses Anthropic
+        with:
+          to: ${{ env.MODELPIN_CANDIDATE }}
+          modelpin-spec: "modelpin[providers]==0.5.3"
+          fail-on-regression: "false"
+      - if: always()
+        env:
+          MODELPIN_WEBHOOK_URL: ${{ secrets.MODELPIN_WEBHOOK_URL }}
+          MODELPIN_WEBHOOK_SECRET: ${{ secrets.MODELPIN_WEBHOOK_SECRET }}
+          MP_CODE: ${{ steps.modelpin.outputs.verdict-exit-code }}
+        run: |
+          pip install "modelpin-relay==0.1.1"
+          rm -f "$RUNNER_TEMP/modelpin-outcome.txt"
+          modelpin-relay publish --exit-code "$MP_CODE" --since "$MODELPIN_START" --to "$MODELPIN_CANDIDATE" --outcome-file "$RUNNER_TEMP/modelpin-outcome.txt" || echo "::warning::Modelpin's relay reported a problem; see the log above"
+      - if: always()
+        run: test "$(cat "$RUNNER_TEMP/modelpin-outcome.txt" 2>/dev/null)" = "clean"
