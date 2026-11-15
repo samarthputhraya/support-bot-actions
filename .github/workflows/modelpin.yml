@@ -1,6 +1,7 @@
 name: Modelpin model check
 on:
   pull_request:
+  workflow_dispatch:             # Actions, Modelpin model check, Run workflow: the retirement scan below
 
 permissions:
   contents: read
@@ -8,6 +9,7 @@ permissions:
 
 jobs:
   modelpin:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
@@ -42,3 +44,20 @@ jobs:
           modelpin-relay publish --exit-code "$MP_CODE" --since "$MODELPIN_START" --to "$MODELPIN_CANDIDATE" --outcome-file "$RUNNER_TEMP/modelpin-outcome.txt" || echo "::warning::Modelpin's relay reported a problem; see the log above"
       - if: always()
         run: test "$(cat "$RUNNER_TEMP/modelpin-outcome.txt" 2>/dev/null)" = "clean"
+  modelpin-watch:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0   # v7.1.0
+        with:
+          python-version: "3.12"
+      - env:
+          MODELPIN_WEBHOOK_URL: ${{ secrets.MODELPIN_WEBHOOK_URL }}
+          MODELPIN_WEBHOOK_SECRET: ${{ secrets.MODELPIN_WEBHOOK_SECRET }}
+        run: |
+          pip install "modelpin==0.5.3" "modelpin-relay==0.1.1"
+          modelpin watch --scan --json > modelpin-watch.json || true
+          modelpin-relay publish-watch --input modelpin-watch.json || echo "::warning::Modelpin couldn't publish this scan, so Jira won't show it; see the error above"
