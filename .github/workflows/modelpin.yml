@@ -5,12 +5,14 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write           # Modelpin's action posts its report on the pull request
 
 jobs:
   modelpin:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write       # Modelpin's action posts its report on the pull request; only this job needs it
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
@@ -26,7 +28,7 @@ jobs:
           echo "MODELPIN_START=$(date +%s)" >> "$GITHUB_ENV"
           echo "MODELPIN_CANDIDATE=$(tr -d '[:space:]' < "$MODELPIN_MODEL_FILE")" >> "$GITHUB_ENV"
       - id: modelpin
-        uses: samarthputhraya/Modelpin@v0.5.3
+        uses: samarthputhraya/Modelpin@7d076bf0be53dea700a4d26d59b32797b4c5b404   # v0.5.3, pinned by commit
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}   # edited as Setup says: this bot uses Anthropic
         with:
